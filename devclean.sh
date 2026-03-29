@@ -22,6 +22,8 @@ set -euo pipefail
 #   settings, or active environments.
 # - "deep" mode is still conservative: it targets caches,
 #   logs, and common rebuildable artifacts only.
+# - Edit DEV_ROOTS below to match your project directories
+#   before running. Only used in "deep" mode.
 # =============================================================
 
 # ── Colors ─────────────────────────────────────────────────────
@@ -37,7 +39,8 @@ MODE="safe"
 DRY_RUN=0
 
 # ── Configurable Project Roots ─────────────────────────────────
-# Add or remove directories where your projects live.
+# Edit these to match where your projects live before running.
+# Used by: deep log cleanup (Section 8) and build artifact cleanup (Section 10).
 DEV_ROOTS=(
     "$HOME/Projects"
     "$HOME/Developer"
@@ -74,6 +77,15 @@ else
     log "Running Maintenance in [${MODE}] mode..."
 fi
 echo -e "${CYAN}══════════════════════════════════════════════${NC}"
+
+# ── Time Machine Guard ─────────────────────────────────────────
+if tmutil status 2>/dev/null | grep -q '"Running" = 1'; then
+    warn "Time Machine backup is in progress."
+    if ! confirm "Continue anyway?"; then
+        err "Aborting — run again after backup completes."
+        exit 1
+    fi
+fi
 
 # ── Helpers ────────────────────────────────────────────────────
 size_of() {
@@ -407,7 +419,7 @@ if [ "$MODE" = "deep" ]; then
     if [ "$DRY_RUN" -eq 1 ]; then
         log "Dry-run: Would remove stray *.log files older than 30 days from dev roots"
     else
-        for root in "${DEV_ROOTS[@]}" "$HOME/Desktop" "$HOME/Documents" "$HOME/Downloads"; do
+        for root in "${DEV_ROOTS[@]}" "$HOME/Documents" "$HOME/Downloads"; do
             [ -d "$root" ] || continue
             find "$root" -maxdepth 5 -type f -name "*.log" -mtime +30 -size +5M -delete 2>/dev/null || true
         done
