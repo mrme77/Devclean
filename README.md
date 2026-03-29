@@ -69,5 +69,7 @@ No files are modified in dry-run mode — it only prints what would happen.
 - [ ] Python rewrite with `pipx install devclean`
 - [ ] Plugin system for custom cleanup modules
 
+## Contributing
+Feel free to open an issue, suggest improvements, or submit a pull request — all contributions welcome.
 ## License
 MIT
