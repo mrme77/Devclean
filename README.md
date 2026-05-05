@@ -1,7 +1,7 @@
 # Devclean
 A macOS maintenance script that cleans dev caches, build artifacts, and AI tool clutter.
 
-Devclean targets the stuff that quietly eats your disk — `__pycache__`, `DerivedData`, `node_modules` caches, Homebrew leftovers, Claude/Gemini/Codex temp files, oversized logs, and more. It stays away from your actual work, credentials, and settings.
+Devclean targets the stuff that quietly eats your disk — `__pycache__`, `DerivedData`, `node_modules` caches, Homebrew leftovers, Claude/Gemini/Codex/OpenCode temp files, Antigravity app caches, oversized logs, and more. It stays away from your actual work, credentials, and settings.
 
 ## Quick Start
 ```bash
@@ -33,7 +33,7 @@ DEV_ROOTS=(
 ```
 
 ## Modes
-**Safe** — the default. Clears obvious caches and temp files: AI CLI caches (Claude, Gemini, Codex), Homebrew cleanup, pip/uv/npm cache verification, shallow `__pycache__` and `.ipynb_checkpoints` removal, Xcode `DerivedData`, and large log truncation.
+**Safe** — the default. Clears obvious caches and temp files: AI CLI caches (Claude, Gemini, Codex, OpenCode), Antigravity/OpenCode app caches, Homebrew cleanup, pip/uv/npm cache verification, shallow `__pycache__` and `.ipynb_checkpoints` removal, Xcode `DerivedData`, and large log truncation.
 
 **Aggressive** — everything in safe, plus: Homebrew download cache, forced npm cache clean, pnpm/yarn cache purge, deeper Python artifact removal (`.pytest_cache`, `.mypy_cache`, `.ruff_cache`), old rotated logs, and Chrome web storage (with confirmation).
 
@@ -42,7 +42,7 @@ DEV_ROOTS=(
 ## What It Cleans
 | Category | Examples |
 |---|---|
-| AI tool caches | `.claude/cache`, `.gemini/tmp`, `.codex/cache` |
+| AI tool caches | `.claude/cache`, `.gemini/tmp`, `.codex/cache`, OpenCode + Antigravity caches |
 | Package managers | pip, uv, npm, pnpm, yarn, Homebrew |
 | Python artifacts | `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.coverage` |
 | Xcode | `DerivedData`, simulator caches, archives |
