@@ -78,15 +78,6 @@ else
 fi
 echo -e "${CYAN}══════════════════════════════════════════════${NC}"
 
-# ── Time Machine Guard ─────────────────────────────────────────
-if tmutil status 2>/dev/null | grep -q '"Running" = 1'; then
-    warn "Time Machine backup is in progress."
-    if ! confirm "Continue anyway?"; then
-        err "Aborting — run again after backup completes."
-        exit 1
-    fi
-fi
-
 # ── Helpers ────────────────────────────────────────────────────
 size_of() {
     local target="$1"
@@ -130,6 +121,15 @@ confirm() {
     [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]
 }
 
+# ── Time Machine Guard ─────────────────────────────────────────
+if tmutil status 2>/dev/null | grep -q '"Running" = 1'; then
+    warn "Time Machine backup is in progress."
+    if ! confirm "Continue anyway?"; then
+        err "Aborting — run again after backup completes."
+        exit 1
+    fi
+fi
+
 run_cmd() {
     local description="$1"
     shift
@@ -170,15 +170,61 @@ find_delete_files() {
     find "$root" -maxdepth "$maxdepth" -type f \( "$@" \) -delete 2>/dev/null || true
 }
 
+clean_large_logs_in_dir() {
+    local dir="$1"
+    local size_threshold="${2:-50M}"
+
+    [ -d "$dir" ] || return 0
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+        log "Dry-run: Would inspect large logs in $dir (>${size_threshold})"
+        find "$dir" -type f \( -name "*.log" -o -name "*.txt" \) -size +"$size_threshold" -print 2>/dev/null || true
+        return 0
+    fi
+
+    while IFS= read -r file; do
+        truncate_file "$file"
+    done < <(find "$dir" -type f \( -name "*.log" -o -name "*.txt" \) -size +"$size_threshold" -print 2>/dev/null || true)
+}
+
 # ════════════════════════════════════════════════════════════════
-# SECTION 1 — Claude Code Cache Cleanup
+# SECTION 1 — AI Tool Cleanup (Claude & OpenCode)
 # ════════════════════════════════════════════════════════════════
-log "Cleaning Claude Code caches..."
+log "Cleaning Claude & OpenCode caches..."
 clean_path "$HOME/.cache/claude-cli-nodejs"
 clean_path "$HOME/.claude/cache"
 clean_path "$HOME/.claude/tmp"
 clean_path "$HOME/.claude/logs"
 clean_path "$HOME/.claude/statsig"
+
+# OpenCode — macOS app paths
+clean_path "$HOME/Library/Caches/opencode"
+clean_path "$HOME/Library/Application Support/OpenCode/GPUCache"
+clean_path "$HOME/Library/Application Support/OpenCode/Code Cache"
+
+# OpenCode — CLI/global paths
+clean_path "$HOME/.cache/opencode/node_modules"
+clean_path "$HOME/.local/share/opencode/tmp"
+
+# OpenCode — logs (truncate if oversized)
+clean_large_logs_in_dir "$HOME/.config/opencode/logs" "20M"
+clean_large_logs_in_dir "$HOME/Library/Application Support/OpenCode/logs" "20M"
+
+# ════════════════════════════════════════════════════════════════
+# SECTION 1b — Antigravity (Google AI IDE)
+# ════════════════════════════════════════════════════════════════
+log "Cleaning Antigravity (Google AI IDE) caches..."
+clean_path "$HOME/Library/Application Support/Antigravity/Cache"
+clean_path "$HOME/Library/Application Support/Antigravity/GPUCache"
+clean_path "$HOME/Library/Application Support/Antigravity/Code Cache"
+clean_path "$HOME/Library/Application Support/Antigravity/DawnGraphiteCache"
+clean_path "$HOME/Library/Application Support/Antigravity/DawnWebGPUCache"
+clean_path "$HOME/Library/Application Support/Antigravity/tmp"
+clean_path "$HOME/Library/Caches/com.google.antigravity"
+clean_large_logs_in_dir "$HOME/Library/Application Support/Antigravity/logs" "20M"
+if [[ "$MODE" =~ ^(aggressive|deep)$ ]]; then
+    clean_path "$HOME/Library/Application Support/Antigravity/exthost"
+fi
 
 # ════════════════════════════════════════════════════════════════
 # SECTION 2 — Gemini CLI Cache Cleanup
@@ -380,23 +426,6 @@ fi
 # SECTION 8 — Logs
 # ════════════════════════════════════════════════════════════════
 log "Cleaning logs..."
-
-clean_large_logs_in_dir() {
-    local dir="$1"
-    local size_threshold="${2:-50M}"
-
-    [ -d "$dir" ] || return 0
-
-    if [ "$DRY_RUN" -eq 1 ]; then
-        log "Dry-run: Would inspect large logs in $dir (>${size_threshold})"
-        find "$dir" -type f \( -name "*.log" -o -name "*.txt" \) -size +"$size_threshold" -print 2>/dev/null || true
-        return 0
-    fi
-
-    while IFS= read -r file; do
-        truncate_file "$file"
-    done < <(find "$dir" -type f \( -name "*.log" -o -name "*.txt" \) -size +"$size_threshold" -print 2>/dev/null || true)
-}
 
 # Safe mode: only obvious user-space logs
 clean_large_logs_in_dir "$HOME/Library/Logs" "50M"
